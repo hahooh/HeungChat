@@ -286,7 +286,6 @@ io.on('connection', function(socket){
 
 								socket.broadcast.to(el+'userId').emit('new chatroom', chatroomid, result[0].title);
 
-
 							});	
 						}
 						
@@ -300,7 +299,11 @@ io.on('connection', function(socket){
 		// send msg to everyone in chatroomid includeing the sender
 		io.sockets.to(chatroomid).emit('chat', msg);
 		
-				
+		let sql_query = 'INSERT INTO chat (userid, chatroomid, msg) VALUE (?,?,?)';
+		conn.query(sql_query, [userid, chatroomid, msg], function(err, result) {
+			if(err) throw err;
+			console.log(result);
+		});
 	});
 	
 });

@@ -1,0 +1,35 @@
+include header.pug
+	body
+		if(chatcreated)
+			h3 chat room is created
+		if(chatroomfailed)
+			h3 chat room is not created! try again
+		p 
+			a(href='/createchatroom') + create chat room!
+		ul
+			caption
+				h3 ChatRooms
+				if(chatrooms)
+					each chatroom in chatrooms
+						if chatroom != ''
+							li 
+								a(href=`/chatroom/${chatroom.id}`) #{chatroom.title}
+	footer
+	script.
+		$(function () {
+		var socket = io();
+			socket.emit('online', #{userId});
+			socket.on('new chatroom', function(chatroomid, title) {
+			
+				console.log(chatroomid);
+				console.log(title);
+			
+				let li = document.createElement('li');
+				let a = document.createElement('a');
+				a.href = '/chatroom/'+chatroomid;
+				a.innerHTML = title;
+				li.appendChild(a);
+				let ul = document.getElementsByTagName('ul')[0];
+				ul.appendChild(li);
+			});
+		});

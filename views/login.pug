@@ -1,0 +1,27 @@
+html
+	head
+		meta(charset='utf-8')
+	body
+		if registered
+			h3 registered successfully!!
+		if loginfail
+			h3 login failed!!
+		h3 Login
+		form(action='login' method='post')
+			label(for='login-email') Email : 
+			input#login-email(type='email' name='email')
+			label(for='login-password') Password : 
+			input#login-password(type='password' name='password')
+			button(type='submit') login!
+		
+		h3 Register
+		form(action='register' method='post')
+			label(for='register-email') Email : 
+			input#register-email(type='email' name='email')
+			label(for='register-password') Password : 
+			input#register-password(type='password' name='password')
+			button(type='submit') Register!
+			
+	footer
+	script.
+		console.log(#{registered});

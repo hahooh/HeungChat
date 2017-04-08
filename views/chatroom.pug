@@ -1,0 +1,30 @@
+include header.pug
+	body
+		p from user ID : msg
+		form(action='chat' method='post')
+			input(type='text')
+			button(type='submit') submit
+		ul
+	script.
+		$(function () {
+			var socket = io();
+
+				// join the chat room
+				socket.emit('joinroom', #{room});
+
+				// send msg
+				$('form').submit(function(){
+					socket.emit('chat', #{userId}, #{room}, $('input').val());
+					$('input').val('');
+					return false;
+				});
+
+				// get & display msg 
+				socket.on('chat', function(msg) {
+					console.log(msg);
+					const ul = document.getElementsByTagName('ul')[0];
+					const li = document.createElement('li');
+					li.innerHTML = msg;
+					ul.appendChild(li);
+				});
+			});

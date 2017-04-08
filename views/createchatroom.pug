@@ -1,0 +1,13 @@
+include header.pug
+	body
+		form(action='/createchatroom' method='post')
+			h3 members
+			label chatroom name : 
+				input(type='text' name='title')
+			ul
+				each user in users
+					li
+						label #{user.email}
+							input(type='checkbox' value=`${user.id}` name='users')
+			button(type='submit') create
+	

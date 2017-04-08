@@ -1,0 +1,31 @@
+{
+  "name": "heungchat",
+  "version": "1.0.0",
+  "description": "흥쳇뿡",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hahooh/HeungChat.git"
+  },
+  "keywords": [
+    "흥Chat뿡"
+  ],
+  "author": "Jiwan Kim",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hahooh/HeungChat/issues"
+  },
+  "homepage": "https://github.com/hahooh/HeungChat#readme",
+  "dependencies": {
+    "bcrypt-nodejs": "0.0.3",
+    "body-parser": "^1.17.1",
+    "cookie-parser": "^1.4.3",
+    "express": "^4.15.2",
+    "mysql": "^2.13.0",
+    "pug": "^2.0.0-beta11",
+    "socket.io": "^1.7.3"
+  }
+}

@@ -7,37 +7,43 @@ echo ++++ config db ++++
 
 echo 'enter database host'
 read dbhost
-echo 'your database host '$dbhost
+echo
 
 echo 'enter database user'
 read dbuser
-echo 'your database user '$dbuser
+echo
 
 echo 'enter database port'
 read dbport
-echo 'your database port '$dbport
+echo
 
 echo 'enter database password'
 read dbpw
-echo 'your database password '$dbpw
+echo
 
 echo 'enter name of database'
 read database
-echo 'your name of database '$database
+echo
 
 echo '{ "host":"'$dbhost'", "user":"'$dbuser'", "port":'$dbport', "password":"'$dbpw'", "database":"'$database'" }' > ./config/dbconfig.json
+echo
 
 echo ++++ config mysql session ++++
 echo 'enter secret key'
 read secret
-echo 'your secret key '$secret
+echo
 
 echo 'enter resave ( true || false )'
 read resave
-echo 'your secret resave '$resave
+echo
 
 echo 'enter saveUninitialized ( true || false )'
 read saveUninitialized
-echo 'your secret saveUninitialized '$saveUninitialized
+echo
 
 echo '{ "secret": "'$secret'", "resave":'$resave', "saveUninitialized":'$saveUninitialized' }' > ./config/mysql-session.json
+echo 
+
+echo 'configuration is done'
+echo 'start application using start.sh!!'
+echo

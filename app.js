@@ -134,8 +134,18 @@ app.get('/createchatroom', function(req, res) {
 });
 
 app.get('/chatroom/:chatroomid', function(req, res) {
-	// get msgs from chat
-	res.render('chatroom', {room: req.params.chatroomid, user: req.session.userId});
+	// get first 20 msgs from chat
+	let sql_query = 'SELECT email, msg, created FROM chat, users WHERE chat.chatroomid='+req.params.chatroomid+" and users.id=chat.userid ORDER BY created DESC LIMIT 10";
+	
+	conn.query(sql_query, function(error, rows) {
+		console.log(rows);
+		res.render('chatroom', {
+			room: req.params.chatroomid,
+			userId: req.session.userId,
+			msgs: rows,
+			email: req.session.userEmail
+		});
+	});
 });
 
 app.post('/createchatroom', function(req, res) {
@@ -250,6 +260,17 @@ io.on('connection', function(socket){
 		console.log("disconnected");
 	});
 	
+	socket.on('load more msgs', function(userid, chatroomid, offset) {
+		let sql_query = 'SELECT email, msg, created FROM chat, users WHERE chat.chatroomid='+chatroomid+" and users.id=chat.userid ORDER BY created DESC LIMIT "+offset+','+10;
+		console.log(offset+10);
+		console.log(offset+20);
+		conn.query(sql_query, function(error, rows) {
+			socket.join(userid+"userId").emit('more msgs', rows);
+		});
+	});
+	
+	
+	
 	// create chat room
 	socket.on('joinroom', function(chatroomid) {
 		socket.join(chatroomid);
@@ -265,7 +286,7 @@ io.on('connection', function(socket){
 						
 						let sql_query = 'UPDATE users SET chatroom=\'';
 						if(user[0].chatroom) {
-							if(user[0].chatroom.split(',').indexOf(chatroomid) < 0) {
+							if(user[0].chatroom.split(',').indexOf(''+chatroomid) < 0) {
 								sql_query += user[0].chatroom+','+chatroomid+"\' WHERE users.id="+el;
 						
 								conn.query(sql_query, function(er, re) {
@@ -295,11 +316,11 @@ io.on('connection', function(socket){
 		});
 	});
 	
-	socket.on('chat', function(userid, chatroomid, msg) {
+	socket.on('chat', function(email, userid, chatroomid, msg) {
 		// send msg to everyone in chatroomid includeing the sender
-		io.sockets.to(chatroomid).emit('chat', msg);
+		io.sockets.to(chatroomid).emit('chat', email, msg);
 		
-		let sql_query = 'INSERT INTO chat (userid, chatroomid, msg) VALUE (?,?,?)';
+		let sql_query = 'INSERT INTO chat (userid, chatroomid, msg, created) VALUE (?,?,?,now())';
 		conn.query(sql_query, [userid, chatroomid, msg], function(err, result) {
 			if(err) throw err;
 			console.log(result);

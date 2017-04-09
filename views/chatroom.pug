@@ -1,30 +1,51 @@
 include header.pug
 	body
-		p from user ID : msg
-		form(action='chat' method='post')
+		form
 			input(type='text')
 			button(type='submit') submit
 		ul
+			if msgs
+				each msg in msgs
+					li #{msg.email} : #{msg.msg}
+		button#loadmsgs load more msg
 	script.
 		$(function () {
+			let count = 10;
+		
 			var socket = io();
-
+			
 				// join the chat room
 				socket.emit('joinroom', #{room});
 
 				// send msg
 				$('form').submit(function(){
-					socket.emit('chat', #{userId}, #{room}, $('input').val());
+					socket.emit('chat', "#{email}", #{userId}, #{room}, $('input').val());
+					count++;
 					$('input').val('');
 					return false;
 				});
+				
+				$('#loadmsgs').on('click', function() {
+					socket.emit('load more msgs', #{userId}, #{room}, count);
+					count += 10;
+					console.log(count);
+				});
+
+				socket.on('more msgs', function(rows) {
+					console.log(rows);
+					rows.forEach(function(el) {
+						const li = document.createElement('li');
+						li.innerHTML = el.email+" : "+el.msg;
+						$('ul').append(li);
+					});
+				});
 
 				// get & display msg 
-				socket.on('chat', function(msg) {
+				socket.on('chat', function(email, msg) {
 					console.log(msg);
-					const ul = document.getElementsByTagName('ul')[0];
 					const li = document.createElement('li');
-					li.innerHTML = msg;
-					ul.appendChild(li);
+					li.innerHTML = email+" : "+msg;
+					$('ul').prepend(li);
+					count++;
 				});
 			});

@@ -19,5 +19,6 @@ CREATE TABLE IF NOT EXISTS `chat` (
 	`userid` int(11) NOT NULL,
 	`chatroomid` int(11) NOT NULL,
   `msg` text NOT NULL,
+	`created` datetime,
   PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

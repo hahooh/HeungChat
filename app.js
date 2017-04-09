@@ -1,13 +1,10 @@
-// users online
-let users = [];
-
-function is_online(userId) {
-	return users.indexOf(userId) > 0? true : false;
-}
+// load module module
+const loadmodules = require('./lib/loadmodules.js');
 
 // load express
-const express = require('express');
-const app = express();
+const app = loadmodules.express();
+
+// load socket io and set socket io
 const http = require('http').Server(app);
 const io = require('socket.io')(http);
 
@@ -15,56 +12,35 @@ const io = require('socket.io')(http);
 //const router = express.Router();
 
 // load and set pug
-const pug = require('pug');
-app.set('view engine', 'pug');
-app.set('pug', './views');
-
-// make html look pretty
-app.locals.pretty = true;
+loadmodules.pug(app);
 
 // load & set bodyParser
-const bodyParser = require('body-parser');
-app.use(bodyParser.urlencoded({extended:false}));
+loadmodules.bodyparser(app);
 
 // load & set cookieParser
-const cookieParser = require('cookie-parser');
-app.use(cookieParser('some key'));
+loadmodules.cookie(app);
+
+// for db related
+const db = require('./lib/db.js');
 
 // load & set mysql connection
-const mysql = require('mysql');
-const conn = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: 'jwkim0@@6',
-  database: 'heungchat'
-});
-
-// get db connection
-conn.connect();
+const conn = db.db();
 
 // load & set session
-const session = require('express-session');
-
-// load mysql mysqlstore
-const mysqlstore = require('express-mysql-session')(session);
-
-app.use(session({
-  secret: 'Some Key',
-  resave: false,
-  saveUninitialized: true,
-  store: new mysqlstore({
-    host : 'localhost',
-    port : 3306,
-    user : 'root',
-    password : 'jwkim0@@6',
-    database : 'heungchat'
-  })
-}));
+const session = db.dbsession();
+app.use(session);
 
 // bcrypt for password hashing
-const bcrypt = require('bcrypt-nodejs');
-const saltRounds = 10;
-const salt = bcrypt.genSaltSync(saltRounds);
+const result = loadmodules.bcrypt();
+const bcrypt = result.bcrypt;
+const salt = result.salt;
+
+// users online
+let users = [];
+
+function is_online(userId) {
+	return users.indexOf(userId) > 0? true : false;
+}
 
 // user did not login
 function is_login(req) {

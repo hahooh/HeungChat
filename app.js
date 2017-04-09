@@ -66,6 +66,19 @@ const bcrypt = require('bcrypt-nodejs');
 const saltRounds = 10;
 const salt = bcrypt.genSaltSync(saltRounds);
 
+// user did not login
+function is_login(req) {
+	return req.session.login;
+}
+
+// login firtst
+function login_first(req, res) {
+	if(!is_login(req)) {
+		res.redirect('/');
+	}
+	console.log(is_login(req));
+}
+
 app.get('/', function(req, res) {
 	
 	let registered = req.session.registered;
@@ -80,7 +93,10 @@ app.get('/', function(req, res) {
 	res.render('login', {registered: registered, loginfail: loginfail});
 });
 
-app.get('/user', function(req, res) {	
+app.get('/user', function(req, res) {
+	
+	// check if login
+	login_first(req,res);
 	
 	let chatcreated = req.session.chatroomcreated;
 	if(req.session.chatroomcreated)
@@ -127,6 +143,10 @@ app.get('/user', function(req, res) {
 });
 
 app.get('/createchatroom', function(req, res) {
+	
+	// check if login
+	login_first(req,res);
+	
 	conn.query('SELECT * FROM users where id!='+req.session.userId, function(err, rows) {
 		if(err) throw err
 		res.render('createchatroom', {users: rows});
@@ -134,11 +154,15 @@ app.get('/createchatroom', function(req, res) {
 });
 
 app.get('/chatroom/:chatroomid', function(req, res) {
+	
+	// check if login
+	login_first(req,res);
+	
 	// get first 20 msgs from chat
 	let sql_query = 'SELECT email, msg, created FROM chat, users WHERE chat.chatroomid='+req.params.chatroomid+" and users.id=chat.userid ORDER BY created DESC LIMIT 10";
 	
 	conn.query(sql_query, function(error, rows) {
-		console.log(rows);
+		console.log('row fetched');
 		res.render('chatroom', {
 			room: req.params.chatroomid,
 			userId: req.session.userId,
@@ -249,6 +273,9 @@ app.post('/register', function(req, res) {
 	});
 });
 
+// typing list
+let nowType = [];
+
 io.on('connection', function(socket){
 	
 	socket.on('online', function(userId) {
@@ -269,12 +296,26 @@ io.on('connection', function(socket){
 		});
 	});
 	
+	// editting chatroom
+	socket.on('editting msg', function(email, room) {
+		nowType.push(email);
+		io.sockets.to(room).emit('who is typing', email+" is typing now");
+	});
 	
+	socket.on('done typing', function(email, room) {
+		nowType.splice(nowType.indexOf(email), 1);
+		if(nowType.length == 0) {
+			io.sockets.to(room).emit('who is typing', '');
+		} else {
+			io.sockets.to(room).emit('who is typing', nowType[0]+" is typing now");
+		}
+		console.log(nowType);
+	});
 	
 	// create chat room
 	socket.on('joinroom', function(chatroomid) {
 		socket.join(chatroomid);
-		
+				
 		conn.query('SELECT * FROM chatrooms WHERE id='+chatroomid, function(err, result) {
 			if(err) throw err
 			let members = result[0].users.split(',');
@@ -323,7 +364,7 @@ io.on('connection', function(socket){
 		let sql_query = 'INSERT INTO chat (userid, chatroomid, msg, created) VALUE (?,?,?,now())';
 		conn.query(sql_query, [userid, chatroomid, msg], function(err, result) {
 			if(err) throw err;
-			console.log(result);
+			console.log('msg stored');
 		});
 	});
 	

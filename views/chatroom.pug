@@ -1,5 +1,6 @@
 include header.pug
 	body
+		p
 		form
 			input(type='text')
 			button(type='submit') submit
@@ -18,11 +19,28 @@ include header.pug
 				socket.emit('joinroom', #{room});
 
 				// send msg
-				$('form').submit(function(){
-					socket.emit('chat', "#{email}", #{userId}, #{room}, $('input').val());
-					count++;
-					$('input').val('');
-					return false;
+				$('form').submit(function() {
+					if($('input').val() != '') {
+						socket.emit('chat', "#{email}", #{userId}, #{room}, $('input').val());
+						count++;
+						$('input').val('');
+					}
+					return false;						
+				});
+				
+				// on input focus
+				$('input').on('focus', function() {
+					console.log('is typing? client');
+					socket.emit('editting msg', "#{email}", #{room});
+				});
+				
+				$('input').on('focusout', function() {
+					console.log('done typing client');
+					socket.emit('done typing', "#{email}", #{room});
+				});
+				
+				socket.on('who is typing', function(msg) {
+					$('p').text(msg);
 				});
 				
 				$('#loadmsgs').on('click', function() {
@@ -32,12 +50,14 @@ include header.pug
 				});
 
 				socket.on('more msgs', function(rows) {
-					console.log(rows);
-					rows.forEach(function(el) {
-						const li = document.createElement('li');
-						li.innerHTML = el.email+" : "+el.msg;
-						$('ul').append(li);
-					});
+					console.log("here are more msgs!");
+					if(rows) {
+						rows.forEach(function(el) {
+							const li = document.createElement('li');
+							li.innerHTML = el.email+" : "+el.msg;
+							$('ul').append(li);
+						});
+					}
 				});
 
 				// get & display msg 

@@ -35,9 +35,6 @@ const result = loadmodules.bcrypt();
 const bcrypt = result.bcrypt;
 const salt = result.salt;
 
-// users online
-let users = [];
-
 function is_online(userId) {
 	return users.indexOf(userId) > 0? true : false;
 }
@@ -252,7 +249,10 @@ app.post('/register', function(req, res) {
 // typing list
 let nowType = [];
 
-io.on('connection', function(socket){
+// users in the chat room
+let users = {};
+
+io.on('connection', function(socket) {
 	
 	socket.on('online', function(userId) {
 		console.log(userId+" is online");
@@ -260,13 +260,19 @@ io.on('connection', function(socket){
 	});
 	
 	socket.on('disconnect', function(req) {
-		console.log("disconnected");
+		if(users[socket.id]) {
+			if(users[socket.id].typing) {
+				nowType.splice(nowType.indexOf(users[socket.id].typing), 1);
+				io.sockets.to(users[socket.id].chatroomid).emit('who is typing', '');
+			}
+			socket.leave(users[socket.id].chatroomid);
+			console.log(socket.id+'is leaving chatroom '+users[socket.id].chatroomid);
+			delete users[socket.id];
+		}
 	});
 	
 	socket.on('load more msgs', function(userid, chatroomid, offset) {
 		let sql_query = 'SELECT email, msg, created FROM chat, users WHERE chat.chatroomid='+chatroomid+" and users.id=chat.userid ORDER BY created DESC LIMIT "+offset+','+10;
-		console.log(offset+10);
-		console.log(offset+20);
 		conn.query(sql_query, function(error, rows) {
 			socket.join(userid+"userId").emit('more msgs', rows);
 		});
@@ -274,12 +280,14 @@ io.on('connection', function(socket){
 	
 	// editting chatroom
 	socket.on('editting msg', function(email, room) {
+		users[socket.id].typing = email;
 		nowType.push(email);
 		io.sockets.to(room).emit('who is typing', email+" is typing now");
 	});
 	
 	socket.on('done typing', function(email, room) {
 		nowType.splice(nowType.indexOf(email), 1);
+		delete users[socket.id].typing;
 		if(nowType.length == 0) {
 			io.sockets.to(room).emit('who is typing', '');
 		} else {
@@ -290,6 +298,11 @@ io.on('connection', function(socket){
 	
 	// create chat room
 	socket.on('joinroom', function(chatroomid) {
+		users[socket.id] = {};
+		users[socket.id].chatroomid = chatroomid;
+		
+		console.log(users);
+		
 		socket.join(chatroomid);
 				
 		conn.query('SELECT * FROM chatrooms WHERE id='+chatroomid, function(err, result) {

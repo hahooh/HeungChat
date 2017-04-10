@@ -252,6 +252,9 @@ let nowType = [];
 // users in the chat room
 let users = {};
 
+// rooms are open
+let rooms={};
+
 io.on('connection', function(socket) {
 	
 	socket.on('online', function(userId) {
@@ -266,6 +269,11 @@ io.on('connection', function(socket) {
 				io.sockets.to(users[socket.id].chatroomid).emit('who is typing', '');
 			}
 			socket.leave(users[socket.id].chatroomid);
+			rooms[users[socket.id].chatroomid].splice(rooms[users[socket.id].chatroomid].indexOf(socket.id), 1);
+			console.log(rooms[users[socket.id].chatroomid]);
+			if(rooms[users[socket.id].chatroomid].length == 0) {
+				delete rooms[users[socket.id].chatroomid];
+			}
 			console.log(socket.id+'is leaving chatroom '+users[socket.id].chatroomid);
 			delete users[socket.id];
 		}
@@ -274,6 +282,7 @@ io.on('connection', function(socket) {
 	socket.on('load more msgs', function(userid, chatroomid, offset) {
 		let sql_query = 'SELECT email, msg, created FROM chat, users WHERE chat.chatroomid='+chatroomid+" and users.id=chat.userid ORDER BY created DESC LIMIT "+offset+','+10;
 		conn.query(sql_query, function(error, rows) {
+			// make chages if there is something to change
 			socket.join(userid+"userId").emit('more msgs', rows);
 		});
 	});
@@ -297,9 +306,15 @@ io.on('connection', function(socket) {
 	});
 	
 	// create chat room
-	socket.on('joinroom', function(chatroomid) {
+	socket.on('joinroom', function(userid, chatroomid) {
 		users[socket.id] = {};
 		users[socket.id].chatroomid = chatroomid;
+		users[socket.id].userid = userid;
+		if(rooms[chatroomid]) {
+			rooms[chatroomid].push(socket.id);
+		} else {
+			rooms[chatroomid] = [socket.id];
+		}
 		
 		console.log(users);
 		
@@ -349,6 +364,14 @@ io.on('connection', function(socket) {
 	socket.on('chat', function(email, userid, chatroomid, msg) {
 		// send msg to everyone in chatroomid includeing the sender
 		io.sockets.to(chatroomid).emit('chat', email, msg);
+		
+		// who is in the room?
+		let sockets_in_chatroom = rooms[chatroomid];
+		let seen = [];
+		sockets_in_chatroom.forEach(function(el) {
+			seen.push(users[el].userid);
+		});
+		console.log(seen.toString());
 		
 		let sql_query = 'INSERT INTO chat (userid, chatroomid, msg, created) VALUE (?,?,?,now())';
 		conn.query(sql_query, [userid, chatroomid, msg], function(err, result) {

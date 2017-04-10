@@ -16,7 +16,7 @@ include header.pug
 			var socket = io();
 			
 				// join the chat room
-				socket.emit('joinroom', #{room});
+				socket.emit('joinroom', #{userId}, #{room});
 
 				// send msg
 				$('form').submit(function() {

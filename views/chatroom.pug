@@ -7,7 +7,7 @@ include header.pug
 		ul
 			if msgs
 				each msg in msgs
-					li #{msg.email} : #{msg.msg}
+					li #{msg.email} : #{msg.msg} (#{(msg.seen).length-1} read this message)
 		button#loadmsgs load more msg
 	script.
 		$(function () {
@@ -50,21 +50,19 @@ include header.pug
 				});
 
 				socket.on('more msgs', function(rows) {
-					console.log("here are more msgs!");
-					if(rows) {
-						rows.forEach(function(el) {
-							const li = document.createElement('li');
-							li.innerHTML = el.email+" : "+el.msg;
-							$('ul').append(li);
-						});
-					}
+					console.log("here are msgs!");
+					rows.forEach(function(row) {
+						const li = document.createElement('li');
+						li.innerHTML = row.email+" : "+row.msg+" ("+((row.seen).length-1)+" read this message)";
+						$('ul').append(li);
+					});
 				});
 
 				// get & display msg 
-				socket.on('chat', function(email, msg) {
+				socket.on('chat', function(email, msg, numSeen) {
 					console.log(msg);
 					const li = document.createElement('li');
-					li.innerHTML = email+" : "+msg;
+					li.innerHTML = email+" : "+msg+" ("+(numSeen-1)+" read this message)";
 					$('ul').prepend(li);
 					count++;
 				});

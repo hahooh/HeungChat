@@ -132,16 +132,34 @@ app.get('/chatroom/:chatroomid', function(req, res) {
 	login_first(req,res);
 	
 	// get first 20 msgs from chat
-	let sql_query = 'SELECT email, msg, created FROM chat, users WHERE chat.chatroomid='+req.params.chatroomid+" and users.id=chat.userid ORDER BY created DESC LIMIT 10";
+	let sql_query = 'SELECT * FROM chat, users WHERE chat.chatroomid='+req.params.chatroomid+" and users.id=chat.userid ORDER BY created DESC LIMIT 10";
 	
 	conn.query(sql_query, function(error, rows) {
-		console.log('row fetched');
+		console.log('chatroom');
+		
+		rows.forEach(function(row) {
+			let seen = (row.seen).split(',');
+
+			if(seen.indexOf(req.session.userId+'') < 0) {
+				console.log(req.session.userId);
+				seen.push(req.session.userId);
+				row.seen = seen.toString();
+				console.log('length : '+row.seen.length);
+
+				let query = 'UPDATE chat SET seen="'+seen.toString()+'" WHERE chatroomid='+row.chatroomid;
+				conn.query(query, function(err, rs) {
+					if(err) throw err
+				});
+			}
+		});		
+
 		res.render('chatroom', {
 			room: req.params.chatroomid,
 			userId: req.session.userId,
 			msgs: rows,
 			email: req.session.userEmail
 		});
+		
 	});
 });
 
@@ -280,9 +298,21 @@ io.on('connection', function(socket) {
 	});
 	
 	socket.on('load more msgs', function(userid, chatroomid, offset) {
-		let sql_query = 'SELECT email, msg, created FROM chat, users WHERE chat.chatroomid='+chatroomid+" and users.id=chat.userid ORDER BY created DESC LIMIT "+offset+','+10;
+		let sql_query = 'SELECT * FROM chat, users WHERE chat.chatroomid='+chatroomid+" and users.id=chat.userid ORDER BY created DESC LIMIT "+offset+','+10;
 		conn.query(sql_query, function(error, rows) {
-			// make chages if there is something to change
+			
+			rows.forEach(function(row) {
+				let seen = (row.seen).split(',');
+				if(seen.indexOf(userid) < 0) {
+					seen.push(userid);
+					row.seen = seen.toString();
+					let query = 'UPDATE chat SET seen='+seen.toString()+' WHERE id='+row.id;
+					conn.query(query, function(err, rs) {
+						if(err) throw err
+					});
+				}
+			});
+			
 			socket.join(userid+"userId").emit('more msgs', rows);
 		});
 	});
@@ -362,8 +392,6 @@ io.on('connection', function(socket) {
 	});
 	
 	socket.on('chat', function(email, userid, chatroomid, msg) {
-		// send msg to everyone in chatroomid includeing the sender
-		io.sockets.to(chatroomid).emit('chat', email, msg);
 		
 		// who is in the room?
 		let sockets_in_chatroom = rooms[chatroomid];
@@ -371,10 +399,12 @@ io.on('connection', function(socket) {
 		sockets_in_chatroom.forEach(function(el) {
 			seen.push(users[el].userid);
 		});
-		console.log(seen.toString());
 		
-		let sql_query = 'INSERT INTO chat (userid, chatroomid, msg, created) VALUE (?,?,?,now())';
-		conn.query(sql_query, [userid, chatroomid, msg], function(err, result) {
+		// send msg to everyone in chatroomid includeing the sender
+		io.sockets.to(chatroomid).emit('chat', email, msg, sockets_in_chatroom.length);
+		
+		let sql_query = 'INSERT INTO chat (userid, chatroomid, msg, seen, created) VALUE (?,?,?,?,now())';
+		conn.query(sql_query, [userid, chatroomid, msg, seen.toString()], function(err, result) {
 			if(err) throw err;
 			console.log('msg stored');
 		});
